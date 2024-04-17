@@ -46,6 +46,8 @@ func (s *APIServer) Run() {
 
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount)).Methods("GET")
 
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccount)).Methods("GET")
+
 	log.Println("JSON server api server running on port : ", s.listenAddr)
 
 	http.ListenAndServe(s.listenAddr, router)
@@ -69,9 +71,12 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	account := NewAccount("Charles", "POULIN")
+	id := mux.Vars(r)["id"]
 
-	return WriteJSON(w, http.StatusOK, account)
+	//db.get(vars["id"])
+	fmt.Println(id)
+
+	return WriteJSON(w, http.StatusOK, &Account{})
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
