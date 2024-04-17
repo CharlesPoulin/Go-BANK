@@ -7,7 +7,7 @@ type Account struct {
 	FirstName string
 	LastName  string
 	Number    int64
-	balance   int64 // FLOat ?
+	Balance   int64 // FLOat ?
 }
 
 func NewAccount(firstName string, lastName string) *Account {
