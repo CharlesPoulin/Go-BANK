@@ -8,6 +8,18 @@ import (
 	"net/http"
 )
 
+type APIServer struct {
+	listenAddr string
+	store      Storage
+}
+
+func NewAPIServer(listenAddr string, store Storage) *APIServer {
+	return &APIServer{
+		listenAddr: listenAddr,
+		store:      store,
+	}
+}
+
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 
@@ -78,15 +90,5 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 				return
 			}
 		}
-	}
-}
-
-type APIServer struct {
-	listenAddr string
-}
-
-func NewAPIServer(listenAddr string) *APIServer {
-	return &APIServer{
-		listenAddr: listenAddr,
 	}
 }

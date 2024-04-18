@@ -1,11 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 func main() {
-	server := NewAPIServer(":3000")
-	println("Server running on %s", server.listenAddr)
+
+	store, err := NewMySQLStore()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("%+v/n", store)
+
+	server := NewAPIServer(":3000", store)
 	server.Run()
 
-	fmt.Println("YO")
+	fmt.Println("it worked")
 }
