@@ -20,33 +20,49 @@ func NewAPIServer(listenAddr string, store Storage) *APIServer {
 	}
 }
 
+func allowCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
+	router.Use(allowCORS)
 
-	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount)).Methods("GET")
+	// Set up route handlers
+	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount)).Methods("GET", "POST", "DELETE")
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountById)).Methods("GET")
 
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccount)).Methods("GET")
-
-	log.Println("JSON server api server running on port : ", s.listenAddr)
-
-	http.ListenAndServe(s.listenAddr, router)
-
+	log.Println("Server running on:", s.listenAddr)
+	err := http.ListenAndServe(s.listenAddr, router)
+	if err != nil {
+		log.Fatal("Error starting server:", err)
+	}
 }
 
 // not using package for learning package OLD WAY
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
-	if r.Method == "GET" {
+	switch r.Method {
+	case "GET":
 		return s.handleGetAccount(w, r)
-	} else if r.Method == "POST" {
+	case "POST":
+		println("POST")
 		return s.handleCreateAccount(w, r)
-	} else if r.Method == "DELETE" {
+	case "DELETE":
 		return s.handleDeleteAccount(w, r)
-	} else if r.Method == "POST" {
+	case "PUT":
 		return s.handleTransfer(w, r)
+	default:
+		return fmt.Errorf("unsupported method %s", r.Method)
 	}
-
-	return fmt.Errorf("unsupported method %s", r.Method)
-
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
@@ -58,8 +74,27 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 	return WriteJSON(w, http.StatusOK, &Account{})
 }
 
+func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
+	id := mux.Vars(r)["id"]
+
+	//db.get(vars["id"])
+	fmt.Println(id)
+
+	return WriteJSON(w, http.StatusOK, &Account{})
+}
+
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	createAccountReq := new(CreateAccountRequest)
+	if err := json.NewDecoder(r.Body).Decode(createAccountReq); err != nil {
+		return err
+	}
+
+	account := NewAccount(createAccountReq.FirstName, createAccountReq.LastName)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
@@ -82,12 +117,16 @@ type apiError struct {
 	error string
 }
 
+// I INCCLUDED LOGGING REMOVE LATER
 func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Received %s request for %s", r.Method, r.URL.Path)
 		if err := f(w, r); err != nil {
+			log.Printf("Error handling request: %v", err)
 			err := WriteJSON(w, http.StatusBadRequest, apiError{error: err.Error()})
 			if err != nil {
-				return
+				log.Printf("Error writing error response: %v", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}
 	}

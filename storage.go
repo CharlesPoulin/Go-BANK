@@ -10,6 +10,7 @@ type Storage interface {
 	CreateAccount(*Account) error
 	DeleteAccount(int) error
 	UpdateAccount(*Account) error
+	GetAccounts() ([]*Account, error)
 	GetAccountByID(int) (*Account, error)
 }
 
@@ -42,15 +43,15 @@ func (s *MySQLStore) init() error {
 // IDONTKNOW HOW TO USE ORM AND I NEED TO STUDY MYSQL FOR MY EXAM
 func (s *MySQLStore) CreateAccountTable() error {
 	query := `
-		CREATE TABLE IF NOT EXISTS accounts (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			first_name VARCHAR(50),
-			last_name VARCHAR(50),
-			number BIGINT,
-			balance BIGINT,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-	)`
+    CREATE TABLE IF NOT EXISTS accounts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(50),
+        last_name VARCHAR(50),
+        number BIGINT,
+        balance BIGINT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`
 
 	_, err := s.db.Exec(query)
 	if err != nil {
@@ -61,8 +62,14 @@ func (s *MySQLStore) CreateAccountTable() error {
 }
 
 func (s *MySQLStore) CreateAccount(a *Account) error {
-	_, err := s.db.Exec("INSERT INTO accounts (first_name, last_name, number, balance) VALUES (?, ?, ?, ?)", a.FirstName, a.LastName, a.Number, a.Balance)
-	return err
+	resp, err := s.db.Exec("INSERT INTO accounts (first_name, last_name, number, balance) VALUES (?, ?, ?, ?)", a.FirstName, a.LastName, a.Number, a.Balance)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("%+v\n", resp)
+	return nil
+
 }
 
 func (s *MySQLStore) UpdateAccount(a *Account) error {
@@ -77,4 +84,23 @@ func (s *MySQLStore) DeleteAccount(id int) error {
 
 func (s *MySQLStore) GetAccountByID(id int) (*Account, error) {
 	return nil, nil
+}
+
+// implement page limit
+func (s *MySQLStore) GetAccounts() ([]*Account, error) {
+	rows, err := s.db.Query("SELECT * FROM accounts")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		account := new(Account)
+		if err := rows.Scan(&account.ID, &account.FirstName, &account.LastName, &account.Number, &account.Balance, &account.CreatedAt, &account.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		accounts = append(accounts, account)
+
+	}
+	return accounts, nil
 }
