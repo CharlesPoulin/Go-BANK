@@ -93,7 +93,12 @@ func (s *MySQLStore) GetAccounts() ([]*Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error querying accounts: %w", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
 
 	var accounts []*Account
 
