@@ -88,19 +88,25 @@ func (s *MySQLStore) GetAccountByID(id int) (*Account, error) {
 
 // implement page limit
 func (s *MySQLStore) GetAccounts() ([]*Account, error) {
-	rows, err := s.db.Query("SELECT * FROM accounts")
+	// Query the database for all accounts
+	rows, err := s.db.Query("SELECT id, first_name, last_name, number, balance, created_at, updated_at FROM accounts")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error querying accounts: %w", err)
 	}
+	defer rows.Close()
+
+	var accounts []*Account
 
 	for rows.Next() {
 		account := new(Account)
 		if err := rows.Scan(&account.ID, &account.FirstName, &account.LastName, &account.Number, &account.Balance, &account.CreatedAt, &account.UpdatedAt); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error scanning account: %w", err)
 		}
-
 		accounts = append(accounts, account)
-
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during row iteration: %w", err)
+	}
+
 	return accounts, nil
 }
