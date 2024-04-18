@@ -1,1 +1,2 @@
-Bank system in Go with POSTGREST, DOCKER, JWT, MUX
+Bank system in Go with MYSQ, DOCKER, JWT, MUX
+
