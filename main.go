@@ -12,6 +12,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := store.init(); err != nil {
+		log.Fatal(err)
+	
+	}
+
 	fmt.Printf("%+v/n", store)
 
 	server := NewAPIServer(":3000", store)

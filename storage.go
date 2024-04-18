@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -31,6 +32,32 @@ func NewMySQLStore() (*MySQLStore, error) {
 	return &MySQLStore{
 		db: db,
 	}, nil
+}
+
+func (s *MySQLStore) init() error {
+	return s.CreateAccountTable()
+	// drop table, migration ect.
+}
+
+// IDONTKNOW HOW TO USE ORM AND I NEED TO STUDY MYSQL FOR MY EXAM
+func (s *MySQLStore) CreateAccountTable() error {
+	query := `
+		CREATE TABLE IF NOT EXISTS accounts (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			first_name VARCHAR(50),
+			last_name VARCHAR(50),
+			number BIGINT,
+			balance BIGINT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+	)`
+
+	_, err := s.db.Exec(query)
+	if err != nil {
+		// Optionally log the error here as well
+		return fmt.Errorf("error creating accounts table: %w", err)
+	}
+	return nil
 }
 
 func (s *MySQLStore) CreateAccount(a *Account) error {
