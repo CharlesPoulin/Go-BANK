@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type TransferRequest struct {
+	ToAccount int64 `json:"toAccount"`
+	Amount    int64 `json:"amount"`
+}
+
 type CreateAccountRequest struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
@@ -27,7 +32,7 @@ func NewAccount(firstName string, lastName string) *Account {
 		LastName:  lastName,
 		Number:    rand.Int63(),
 		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(), //todo: DOESNT SQL DO IT FOR ME ?
+		UpdatedAt: time.Now().UTC(), //DOES mysql do it for me.
 		// balance goes to 0 normally with go
 	}
 }
