@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type APIServer struct {
@@ -76,12 +77,18 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 }
 
 func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
-	id := mux.Vars(r)["id"]
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return fmt.Errorf("invalid account ID %q: %w", idStr, err)
+	}
 
-	//db.get(vars["id"])
-	fmt.Println(id)
+	account, err := s.store.GetAccountByID(id)
+	if err != nil {
+		return err
+	}
 
-	return WriteJSON(w, http.StatusOK, &Account{})
+	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {

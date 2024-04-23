@@ -83,7 +83,16 @@ func (s *MySQLStore) DeleteAccount(id int) error {
 }
 
 func (s *MySQLStore) GetAccountByID(id int) (*Account, error) {
-	return nil, nil
+	rows, err := s.db.Query("SELECT id, first_name, last_name, number, balance, created_at, updated_at FROM accounts WHERE id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return scanIntoAccount(rows)
+	}
+	
+	return nil, fmt.Errorf("account %d not found", id)
 }
 
 // implement page limit
@@ -107,6 +116,7 @@ func (s *MySQLStore) GetAccounts() ([]*Account, error) {
 		if err := rows.Scan(&account.ID, &account.FirstName, &account.LastName, &account.Number, &account.Balance, &account.CreatedAt, &account.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("error scanning account: %w", err)
 		}
+		account, _ = scanIntoAccount(rows)
 		accounts = append(accounts, account)
 	}
 	if err := rows.Err(); err != nil {
@@ -114,4 +124,12 @@ func (s *MySQLStore) GetAccounts() ([]*Account, error) {
 	}
 
 	return accounts, nil
+}
+
+func scanIntoAccount(row *sql.Rows) (*Account, error) {
+	account := new(Account)
+	if err := row.Scan(&account.ID, &account.FirstName, &account.LastName, &account.Number, &account.Balance, &account.CreatedAt, &account.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("error scanning account: %w", err)
+	}
+	return account, nil
 }
