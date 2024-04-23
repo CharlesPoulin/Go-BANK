@@ -40,7 +40,7 @@ func (s *APIServer) Run() {
 
 	// Set up route handlers
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount)).Methods("GET", "POST", "DELETE")
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountById)).Methods("GET")
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountById)).Methods("GET", "DELETE")
 
 	log.Println("Server running on:", s.listenAddr)
 	err := http.ListenAndServe(s.listenAddr, router)
@@ -77,10 +77,9 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 }
 
 func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
+	id, err := getID(r)
 	if err != nil {
-		return fmt.Errorf("invalid account ID %q: %w", idStr, err)
+		return err
 	}
 
 	account, err := s.store.GetAccountByID(id)
@@ -106,7 +105,16 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	id, err := getID(r)
+	if err != nil {
+		return err
+	}
+
+	if err := s.store.DeleteAccount(id); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
@@ -122,7 +130,7 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
 type apiError struct {
-	error string
+	Error string `json:"error"`
 }
 
 // I INCCLUDED LOGGING REMOVE LATER
@@ -131,11 +139,20 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 		log.Printf("Received %s request for %s", r.Method, r.URL.Path)
 		if err := f(w, r); err != nil {
 			log.Printf("Error handling request: %v", err)
-			err := WriteJSON(w, http.StatusBadRequest, apiError{error: err.Error()})
+			err := WriteJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 			if err != nil {
 				log.Printf("Error writing error response: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}
 	}
+}
+
+func getID(r *http.Request) (int, error) {
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return id, fmt.Errorf("invalid id %q: %w", idStr, err)
+	}
+	return id, nil
 }

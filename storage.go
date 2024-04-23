@@ -78,8 +78,10 @@ func (s *MySQLStore) UpdateAccount(a *Account) error {
 }
 
 func (s *MySQLStore) DeleteAccount(id int) error {
-	//_, err := s.db.Exec("INSERT INTO accounts (first_name, last_name, number, balance) VALUES (?, ?, ?, ?)", a.FirstName, a.LastName, a.Number, a.Balance)
-	return nil
+
+	//todo find the Cleanway to do it for prod (this looks barbarian)
+	_, err := s.db.Query("DELETE FROM accounts WHERE id = ?", id)
+	return err
 }
 
 func (s *MySQLStore) GetAccountByID(id int) (*Account, error) {
@@ -91,7 +93,7 @@ func (s *MySQLStore) GetAccountByID(id int) (*Account, error) {
 	for rows.Next() {
 		return scanIntoAccount(rows)
 	}
-	
+
 	return nil, fmt.Errorf("account %d not found", id)
 }
 
