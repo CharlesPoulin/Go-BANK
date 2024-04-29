@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -121,6 +122,8 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
+	tokenstri
+
 	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
 }
 
@@ -172,6 +175,8 @@ func getID(r *http.Request) (int, error) {
 
 }
 
+var JWTSecret = os.Getenv("JWT_SECRET")
+
 // todo check my jwt projects
 func withJWTAUTH(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -190,11 +195,12 @@ func withJWTAUTH(handler http.HandlerFunc) http.HandlerFunc {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 			// This should be your secret key
-			return []byte("WATCHALOOKINGAT"), nil
+			return []byte(JWTSecret), nil
 		})
 
 		if err != nil || !token.Valid {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
+
 			return
 		}
 
