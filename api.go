@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -38,9 +39,10 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.Use(allowCORS)
 
-	// Set up route handlers
+	// Set up route handlers with JWT middleware for protected endpoints
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount)).Methods("GET", "POST", "DELETE")
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountById)).Methods("GET", "DELETE")
+	// Applying JWT Auth middleware to GET and DELETE methods for /account/{id}
+	router.HandleFunc("/account/{id}", withJWTAUTH(makeHTTPHandleFunc(s.handleGetAccountById))).Methods("GET", "DELETE")
 	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer)).Methods("GET")
 
 	log.Println("Server running on:", s.listenAddr)
@@ -167,4 +169,36 @@ func getID(r *http.Request) (int, error) {
 		return id, fmt.Errorf("invalid id %q: %w", idStr, err)
 	}
 	return id, nil
+
+}
+
+// todo check my jwt projects
+func withJWTAUTH(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tokenString := r.Header.Get("Authorization")
+
+		// Validate token format
+		if tokenString == "" {
+			http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+			return
+		}
+
+		// Parse the token
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			// Make sure the signing method conforms to "SigningMethodHMAC"
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			// This should be your secret key
+			return []byte("WATCHALOOKINGAT"), nil
+		})
+
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		// Token is valid, proceed with the request
+		handler(w, r)
+	}
 }
