@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"log"
 )
 
 type Storage interface {
@@ -62,14 +63,21 @@ func (s *MySQLStore) CreateAccountTable() error {
 }
 
 func (s *MySQLStore) CreateAccount(a *Account) error {
-	resp, err := s.db.Exec("INSERT INTO accounts (first_name, last_name, number, balance) VALUES (?, ?, ?, ?)", a.FirstName, a.LastName, a.Number, a.Balance)
+	query := "INSERT INTO accounts (first_name, last_name, number, balance) VALUES (?, ?, ?, ?)"
+	resp, err := s.db.Exec(query, a.FirstName, a.LastName, a.Number, a.Balance)
 	if err != nil {
-		return err
+		log.Printf("Failed to create account: %v", err) // Assuming 'log' is properly initialized
+		return fmt.Errorf("error creating account: %w", err)
 	}
 
-	fmt.Println("%+v\n", resp)
-	return nil
+	id, err := resp.LastInsertId()
+	if err != nil {
+		log.Printf("Failed to retrieve last insert ID: %v", err)
+		return fmt.Errorf("error getting last insert ID: %w", err)
+	}
 
+	fmt.Printf("Account created with ID: %d\n", id)
+	return nil
 }
 
 func (s *MySQLStore) UpdateAccount(a *Account) error {
