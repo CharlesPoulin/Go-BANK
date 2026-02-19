@@ -8,4 +8,4 @@ require (
 	github.com/gorilla/mux v1.8.1
 )
 
-require filippo.io/edwards25519 v1.1.0 // indirect
+require filippo.io/edwards25519 v1.1.1 // indirect
